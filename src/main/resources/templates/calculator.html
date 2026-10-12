@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan EMI Calculator - Loan Management</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .calc-slider {
+            height: 8px;
+            cursor: pointer;
+        }
+        .preset-pill {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .preset-pill:hover, .preset-pill.active {
+            background-color: #0d6efd !important;
+            color: white !important;
+            border-color: #0d6efd !important;
+        }
+        .chart-container {
+            position: relative;
+            max-width: 260px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm py-3">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center fw-bold" th:href="@{/dashboard}">
+            <div class="brand-icon me-2"><i class="bi bi-bank2 text-primary fs-4"></i></div>
+            <span>Loan<span class="text-primary">Mng</span></span>
+        </a>
+        <div class="collapse navbar-collapse" id="navContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4" th:if="${currentUser != null}">
+                <li class="nav-item"><a class="nav-link" th:href="@{/dashboard}"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/loans}"><i class="bi bi-cash-stack me-1"></i> My Loans</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/loans/apply}"><i class="bi bi-plus-circle me-1"></i> Apply Loan</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/payments}"><i class="bi bi-receipt me-1"></i> Payments</a></li>
+                <li class="nav-item"><a class="nav-link active" th:href="@{/calculator}"><i class="bi bi-calculator me-1"></i> EMI Calculator</a></li>
+            </ul>
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4" th:if="${currentUser == null}">
+                <li class="nav-item"><a class="nav-link active" th:href="@{/calculator}"><i class="bi bi-calculator me-1"></i> EMI Calculator</a></li>
+            </ul>
+            <div class="d-flex align-items-center gap-2">
+                <div th:if="${currentUser != null}">
+                    <form th:action="@{/logout}" method="post" class="d-inline m-0">
+                        <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-box-arrow-right me-1"></i> Logout</button>
+                    </form>
+                </div>
+                <div th:if="${currentUser == null}">
+                    <a th:href="@{/login}" class="btn btn-outline-light btn-sm me-2">Sign In</a>
+                    <a th:href="@{/register}" class="btn btn-primary btn-sm">Register</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container my-5">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <h1 class="fw-bold mb-2"><i class="bi bi-calculator text-primary me-2"></i>Smart Loan EMI Calculator</h1>
+        <p class="text-muted fs-6">Plan your finances accurately. Adjust loan amount, interest rate, and tenure to preview your monthly commitments.</p>
+    </div>
+
+    <!-- Loan Category Quick Presets -->
+    <div class="d-flex flex-wrap justify-content-center gap-2 mb-5">
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 preset-pill active" onclick="setPreset('Personal Loan', 500000, 10.0, 36)">
+            <i class="bi bi-person me-1"></i> Personal Loan (10.0%)
+        </button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 preset-pill" onclick="setPreset('Home Loan', 3500000, 8.5, 240)">
+            <i class="bi bi-house me-1"></i> Home Loan (8.5%)
+        </button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 preset-pill" onclick="setPreset('Auto Loan', 800000, 9.0, 60)">
+            <i class="bi bi-car-front me-1"></i> Auto / Car Loan (9.0%)
+        </button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 preset-pill" onclick="setPreset('Education Loan', 1000000, 7.5, 84)">
+            <i class="bi bi-mortarboard me-1"></i> Education Loan (7.5%)
+        </button>
+        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 py-2 preset-pill" onclick="setPreset('Business Loan', 2000000, 11.5, 48)">
+            <i class="bi bi-briefcase me-1"></i> Business Loan (11.5%)
+        </button>
+    </div>
+
+    <div class="row g-4 align-items-stretch">
+        <!-- Controls Left -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 rounded-4 p-4 h-100">
+                <h5 class="fw-bold mb-4 text-secondary"><i class="bi bi-sliders me-2"></i>Loan Parameters</h5>
+
+                <!-- Amount Control -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold mb-0">Loan Amount (₹)</label>
+                        <div class="input-group" style="width: 180px;">
+                            <span class="input-group-text bg-light fw-bold">₹</span>
+                            <input type="number" id="numAmount" class="form-control fw-bold text-primary text-end" min="10000" max="10000000" step="5000" value="500000">
+                        </div>
+                    </div>
+                    <input type="range" class="form-range calc-slider" id="rangeAmount" min="10000" max="10000000" step="10000" value="500000">
+                    <div class="d-flex justify-content-between text-muted small">
+                        <span>₹10,000</span>
+                        <span>₹50,00,000</span>
+                        <span>₹1,00,00,000</span>
+                    </div>
+                </div>
+
+                <!-- Interest Rate Control -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold mb-0">Interest Rate (% p.a.)</label>
+                        <div class="input-group" style="width: 140px;">
+                            <input type="number" id="numRate" class="form-control fw-bold text-dark text-end" min="1.0" max="30.0" step="0.1" value="10.0">
+                            <span class="input-group-text bg-light fw-bold">%</span>
+                        </div>
+                    </div>
+                    <input type="range" class="form-range calc-slider" id="rangeRate" min="5.0" max="25.0" step="0.25" value="10.0">
+                    <div class="d-flex justify-content-between text-muted small">
+                        <span>5.0%</span>
+                        <span>15.0%</span>
+                        <span>25.0%</span>
+                    </div>
+                </div>
+
+                <!-- Tenure Control -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold mb-0">Loan Tenure</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="input-group" style="width: 150px;">
+                                <input type="number" id="numTenure" class="form-control fw-bold text-end" min="6" max="360" step="1" value="36">
+                                <span class="input-group-text bg-light small" id="tenureUnitLabel">Months</span>
+                            </div>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary active" id="btnMonths" onclick="setTenureMode('M')">Mo</button>
+                                <button type="button" class="btn btn-outline-primary" id="btnYears" onclick="setTenureMode('Y')">Yr</button>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="range" class="form-range calc-slider" id="rangeTenure" min="6" max="360" step="6" value="36">
+                    <div class="d-flex justify-content-between text-muted small" id="tenureRangeLabels">
+                        <span>6 Months</span>
+                        <span>15 Years (180 Mo)</span>
+                        <span>30 Years (360 Mo)</span>
+                    </div>
+                </div>
+
+                <div class="alert alert-light border rounded-3 mt-auto mb-0 d-flex align-items-center">
+                    <i class="bi bi-info-circle text-primary fs-4 me-3"></i>
+                    <div class="small text-muted">
+                        Formula used: <strong>EMI = [P &times; R &times; (1+R)<sup>N</sup>] / [(1+R)<sup>N</sup> &minus; 1]</strong>, where R is monthly interest and N is number of months.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Results Right -->
+        <div class="col-lg-5">
+            <div class="card shadow border-0 rounded-4 p-4 text-center h-100 bg-white">
+                <h5 class="fw-bold mb-3 text-secondary text-start"><i class="bi bi-pie-chart me-2"></i>Repayment Summary</h5>
+
+                <!-- Big Monthly EMI Banner -->
+                <div class="bg-primary text-white rounded-4 p-4 mb-4 shadow-sm">
+                    <div class="text-white-50 small text-uppercase fw-semibold mb-1">Monthly Payable EMI</div>
+                    <h2 class="display-5 fw-bold mb-0" id="displayEmi">₹0</h2>
+                </div>
+
+                <!-- Breakdown Numbers -->
+                <div class="row g-3 mb-4 text-start">
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded-3 border h-100">
+                            <span class="text-muted small d-block">Principal Amount</span>
+                            <h5 class="fw-bold text-dark mb-0" id="displayPrincipal">₹0</h5>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded-3 border h-100">
+                            <span class="text-muted small d-block">Total Interest</span>
+                            <h5 class="fw-bold text-warning-emphasis mb-0" id="displayInterest">₹0</h5>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <span class="text-muted small d-block">Total Payment (Principal + Interest)</span>
+                            <h4 class="fw-bold text-success mb-0" id="displayTotal">₹0</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Ratio Bar -->
+                <div class="mb-4 text-start">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span><i class="bi bi-circle-fill text-primary me-1"></i>Principal: <strong id="ratioPrincipal">0%</strong></span>
+                        <span><i class="bi bi-circle-fill text-warning me-1"></i>Interest: <strong id="ratioInterest">0%</strong></span>
+                    </div>
+                    <div class="progress" style="height: 16px;">
+                        <div class="progress-bar bg-primary" id="barPrincipal" role="progressbar" style="width: 70%"></div>
+                        <div class="progress-bar bg-warning" id="barInterest" role="progressbar" style="width: 30%"></div>
+                    </div>
+                </div>
+
+                <!-- Apply Now CTA -->
+                <div class="mt-auto">
+                    <a id="btnApplyNow" th:href="@{/loans/apply}" class="btn btn-primary btn-lg w-100 shadow-sm py-3 fw-bold">
+                        <i class="bi bi-send-check me-2"></i> Apply For This Loan
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Amortization Schedule Table Preview -->
+    <div class="card shadow-sm border-0 rounded-4 mt-5">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0"><i class="bi bi-table me-2 text-primary"></i>Repayment Schedule Breakdown (First 12 Months)</h5>
+            <span class="badge bg-light text-dark border">Amortization Table</span>
+        </div>
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center" id="scheduleTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Month</th>
+                            <th>Opening Balance</th>
+                            <th>EMI</th>
+                            <th>Principal Paid</th>
+                            <th>Interest Paid</th>
+                            <th>Closing Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scheduleBody">
+                        <!-- Populated dynamically via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let currentCategory = 'Personal Loan';
+    let tenureMode = 'M'; // 'M' or 'Y'
+
+    const numAmount = document.getElementById('numAmount');
+    const rangeAmount = document.getElementById('rangeAmount');
+    const numRate = document.getElementById('numRate');
+    const rangeRate = document.getElementById('rangeRate');
+    const numTenure = document.getElementById('numTenure');
+    const rangeTenure = document.getElementById('rangeTenure');
+
+    function sync(source, target) {
+        target.value = source.value;
+        calculate();
+    }
+
+    numAmount.addEventListener('input', () => sync(numAmount, rangeAmount));
+    rangeAmount.addEventListener('input', () => sync(rangeAmount, numAmount));
+
+    numRate.addEventListener('input', () => sync(numRate, rangeRate));
+    rangeRate.addEventListener('input', () => sync(rangeRate, numRate));
+
+    numTenure.addEventListener('input', () => {
+        let val = Number(numTenure.value);
+        if (tenureMode === 'Y') val *= 12;
+        rangeTenure.value = val;
+        calculate();
+    });
+
+    rangeTenure.addEventListener('input', () => {
+        let months = Number(rangeTenure.value);
+        numTenure.value = tenureMode === 'Y' ? (months / 12).toFixed(1) : months;
+        calculate();
+    });
+
+    function setTenureMode(mode) {
+        tenureMode = mode;
+        const btnM = document.getElementById('btnMonths');
+        const btnY = document.getElementById('btnYears');
+        const label = document.getElementById('tenureUnitLabel');
+        const months = Number(rangeTenure.value);
+
+        if (mode === 'Y') {
+            btnY.classList.add('active');
+            btnM.classList.remove('active');
+            label.textContent = 'Years';
+            numTenure.value = (months / 12).toFixed(1);
+            numTenure.min = 0.5;
+            numTenure.max = 30;
+            numTenure.step = 0.5;
+        } else {
+            btnM.classList.add('active');
+            btnY.classList.remove('active');
+            label.textContent = 'Months';
+            numTenure.value = months;
+            numTenure.min = 6;
+            numTenure.max = 360;
+            numTenure.step = 1;
+        }
+        calculate();
+    }
+
+    function setPreset(category, amount, rate, months) {
+        currentCategory = category;
+        document.querySelectorAll('.preset-pill').forEach(pill => pill.classList.remove('active'));
+        if (event && event.currentTarget) event.currentTarget.classList.add('active');
+
+        numAmount.value = amount;
+        rangeAmount.value = amount;
+
+        numRate.value = rate;
+        rangeRate.value = rate;
+
+        rangeTenure.value = months;
+        if (tenureMode === 'Y') {
+            numTenure.value = (months / 12).toFixed(1);
+        } else {
+            numTenure.value = months;
+        }
+
+        calculate();
+    }
+
+    function formatINR(val) {
+        return '₹' + Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function calculate() {
+        const P = parseFloat(numAmount.value) || 0;
+        const annualRate = parseFloat(numRate.value) || 0;
+        const N = tenureMode === 'Y' ? Math.round(parseFloat(numTenure.value) * 12) : parseInt(numTenure.value);
+
+        if (P <= 0 || annualRate <= 0 || N <= 0) return;
+
+        const r = (annualRate / 12) / 100;
+        const emi = (P * r * Math.pow(1 + r, N)) / (Math.pow(1 + r, N) - 1);
+        const totalPayment = emi * N;
+        const totalInterest = totalPayment - P;
+
+        document.getElementById('displayEmi').textContent = formatINR(emi);
+        document.getElementById('displayPrincipal').textContent = formatINR(P);
+        document.getElementById('displayInterest').textContent = formatINR(totalInterest);
+        document.getElementById('displayTotal').textContent = formatINR(totalPayment);
+
+        const principalRatio = ((P / totalPayment) * 100).toFixed(1);
+        const interestRatio = (100 - principalRatio).toFixed(1);
+
+        document.getElementById('ratioPrincipal').textContent = principalRatio + '%';
+        document.getElementById('ratioInterest').textContent = interestRatio + '%';
+        document.getElementById('barPrincipal').style.width = principalRatio + '%';
+        document.getElementById('barInterest').style.width = interestRatio + '%';
+
+        // Update Apply Button Link
+        const applyBtn = document.getElementById('btnApplyNow');
+        applyBtn.href = `/loans/apply?type=${encodeURIComponent(currentCategory)}&amount=${P}&tenure=${N}&rate=${annualRate}`;
+
+        // Populate Amortization Table for first 12 months
+        const tbody = document.getElementById('scheduleBody');
+        tbody.innerHTML = '';
+        let balance = P;
+        const previewLimit = Math.min(12, N);
+
+        for (let m = 1; m <= previewLimit; m++) {
+            const interestForMonth = balance * r;
+            const principalForMonth = emi - interestForMonth;
+            const closing = Math.max(0, balance - principalForMonth);
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="fw-bold">${m}</td>
+                <td>${formatINR(balance)}</td>
+                <td class="text-primary fw-semibold">${formatINR(emi)}</td>
+                <td class="text-success">${formatINR(principalForMonth)}</td>
+                <td class="text-warning-emphasis">${formatINR(interestForMonth)}</td>
+                <td class="fw-semibold">${formatINR(closing)}</td>
+            `;
+            tbody.appendChild(tr);
+            balance = closing;
+        }
+    }
+
+    // Initial run
+    calculate();
+</script>
+</body>
+</html>

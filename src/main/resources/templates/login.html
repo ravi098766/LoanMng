@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - Loan Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body class="auth-body">
+
+<div class="auth-container">
+    <div class="auth-card shadow-lg">
+        <!-- Brand Header -->
+        <div class="auth-header text-center">
+            <div class="brand-logo mb-3">
+                <i class="bi bi-bank2"></i>
+            </div>
+            <h2 class="auth-title">Welcome Back</h2>
+            <p class="auth-subtitle">Sign in to your Loan Management account</p>
+        </div>
+
+        <!-- Alert Notifications -->
+        <div th:if="${errorMessage != null or param.error != null}" class="alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <span th:text="${errorMessage != null ? errorMessage : 'Invalid username or password. Please try again.'}">Invalid credentials.</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <div th:if="${logoutMessage != null or param.logout != null}" class="alert alert-info d-flex align-items-center alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+            <span th:text="${logoutMessage != null ? logoutMessage : 'You have been logged out successfully.'}">You have logged out.</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <div th:if="${successMessage != null or param.registered != null}" class="alert alert-success d-flex align-items-center alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+            <span th:text="${successMessage != null ? successMessage : 'Registration completed! Please sign in with your credentials.'}">Account registered successfully!</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Login Form -->
+        <form th:action="@{/login}" method="post" id="loginForm" class="auth-form mt-4">
+            <!-- Username / Email Field -->
+            <div class="mb-3">
+                <label for="username" class="form-label">Email or Mobile Number</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text"
+                           class="form-control"
+                           id="username"
+                           name="username"
+                           placeholder="Enter email or mobile number"
+                           required
+                           autofocus>
+                </div>
+            </div>
+
+            <!-- Password Field -->
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label for="password" class="form-label mb-0">Password</label>
+                </div>
+                <div class="input-group mt-1">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password"
+                           class="form-control"
+                           id="password"
+                           name="password"
+                           placeholder="Enter your password"
+                           required>
+                    <button class="btn btn-outline-secondary toggle-password" type="button" data-target="password">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Remember Me & Forgot Password -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="remember-me" name="remember-me">
+                    <label class="form-check-label text-muted" for="remember-me">
+                        Remember me
+                    </label>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary w-100 btn-lg shadow-sm">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+            </button>
+        </form>
+
+        <!-- Divider -->
+        <div class="divider my-4">
+            <span>OR</span>
+        </div>
+
+        <!-- Register Link -->
+        <div class="text-center auth-footer">
+            <p class="mb-0 text-muted">Don't have an account? 
+                <a th:href="@{/register}" class="fw-semibold text-primary text-decoration-none">Create one now</a>
+            </p>
+        </div>
+
+        <!-- Demo Accounts Box -->
+        <div class="demo-box mt-4 p-3 rounded">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="fw-bold text-secondary small"><i class="bi bi-key-fill me-1"></i> Quick Test Accounts</span>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-sm btn-outline-primary fill-demo" data-user="raj123@gmail.com" data-pass="raj@12345">
+                    Customer: <code>raj123@gmail.com</code>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary fill-demo" data-user="ravi9078@gmail.com" data-pass="Ravi12@">
+                    Customer: <code>ravi9078@gmail.com</code>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-dark fill-demo" data-user="admin@loanmng.com" data-pass="admin123">
+                    Admin: <code>admin@loanmng.com</code>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/js/auth.js}"></script>
+</body>
+</html>
